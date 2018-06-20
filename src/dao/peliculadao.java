@@ -7,7 +7,9 @@ package dao;
 
 import conexion.conexion;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,10 +21,11 @@ import modelo.pelicula;
  * @author Mabel
  */
 public class peliculadao implements metodos<pelicula> {
-private static final String SQL_INSERT = "INSERT INTO movie(1)(nombre,anio,director,pais,clasificacion,existencia) VALUES (?,?,?,?,?)";
-private static final String SQL_UPDATE ="UPDATE movie(1) SET existencia =? WHERE nombre=?";
-private static final String SQL_DELETE = "DELETE FROM movie(1) WHERE nombre=?";
-private static final String SQL_READALL= "SELECT *FROM movie(1)";
+private static final String SQL_INSERT = "INSERT INTO movie(nombre,anio,director,pais,clasificacion,existencia) VALUES (?,?,?,?,?)";
+private static final String SQL_UPDATE ="UPDATE movie SET existencia =? WHERE nombre=?";
+private static final String SQL_DELETE = "DELETE FROM movie WHERE nombre=?";
+private static final String SQL_READ = "SELECT *FROM movie WHERE nombre=?";
+private static final String SQL_READALL= "SELECT *FROM movie";
 
 private static final conexion con =conexion.conectar();
 
@@ -77,19 +80,54 @@ private static final conexion con =conexion.conectar();
             ps = con.getCnx().prepareStatement(SQL_UPDATE);
             ps.setBoolean(6,c.isDisponible());
             if (ps.executeUpdate()>0){
-                
+                return true;
             }
+        }catch (SQLException ex){
+            System.out.println(ex.getMessage());
+            Logger.getLogger(peliculadao.class.getName()).log(Level.SEVERE,null, ex);
+        } finally{
+            con.cerrarConexion();
         }
+        return false;
     }
 
     @Override
     public pelicula read(Object key) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public ArrayList<pelicula> readAll() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        pelicula p =null;
+        PreparedStatement ps;
+        ResultSet rs;
+        try{
+            ps=con.getCnx().prepareStatement(SQL_READ);
+            ps.setString(1,key.toString());
+            rs =ps.executeQuery();
+            while(rs.next()){
+                p= new pelicula(rs.getString(1),rs.getInt(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getBoolean(6));
+            }
+            rs.close();
+    } catch (SQLException ex){
+        System.out.println(ex.getMessage());
+        Logger.getLogger(peliculadao.class.getName()).log(Level.SEVERE,null, ex);
+    } finally {
+            con.cerrarConexion();
+        }
+        return p;
     }
     
+    @Override
+    public ArrayList<pelicula> readAll() {
+        ArrayList<pelicula> all = new ArrayList();
+        Statement s;
+        ResultSet rs;
+        try {
+            s= con.getCnx().prepareStatement(SQL_READALL);
+            rs = s.executeQuery(SQL_READALL);
+            while(rs.next()){
+                all.add(new pelicula(rs.getString(1),rs.getInt(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getBoolean(6)));
+            }
+            rs.close();
+        } catch(SQLException ex){
+            Logger.getLogger(peliculadao.class.getName()).log(Level.SEVERE,null, ex);
+        }
+        return all;
+    }
 }
